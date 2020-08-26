@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/bbernays/appsync-go-client/cmd"
+	"github.com/bernays/appsync-go-client/cmd"
 )
 
 var (
@@ -11,7 +11,7 @@ var (
 )
 var (
 	authType = "AWS_IAM"
-	profile  = "CFN-Test"
+	profile  = "default"
 )
 
 func main() {
