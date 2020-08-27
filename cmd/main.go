@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,19 +17,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/gorilla/websocket"
 )
 
-type iamHeaders struct {
-	Accept            string `json:"accept"`
-	ContentEncoding   string `json:"content-encoding"`
-	ContentType       string `json:"content-type"`
-	Host              string `json:"host"`
-	XAmzDate          string `json:"x-amz-date"`
-	XAmzSecurityToken string `json:"X-Amz-Security-Token"`
-	Authorization     string `json:"Authorization"`
+func generateUUID() (string, error) {
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {
+		log.Print(err)
+		return "", err
+	}
+	uuid := fmt.Sprintf("%x-%x-%x-%x-%x",
+		b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+	return uuid, nil
 }
 
 type nilBody struct{}
@@ -63,13 +67,13 @@ func makeSha256Reader(reader io.ReadSeeker) (hashBytes []byte, err error) {
 	io.Copy(hash, reader)
 	return hash.Sum(nil), nil
 }
-func iamAuth(url, profile, payload string) (string, string, error) {
-	canonicalURI := strings.ReplaceAll(url, "https://", "wss://") + "/connect"
+
+func iamAuth(canonicalURI, profile, payload string) (*IamHeaders, string, error) {
 
 	cfg, err := external.LoadDefaultAWSConfig(
-		// external.WithSharedConfigProfile(profile),
-		// aws.WithLogLevel(aws.LogDebug),
-		external.WithDefaultRegion("us-east-2"),
+	// external.WithSharedConfigProfile("default"),
+	// aws.WithLogLevel(aws.LogDebugWithSigning),
+	// external.WithDefaultRegion("us-east-2"),
 	)
 	if err != nil {
 		log.Printf("%+v", err)
@@ -78,7 +82,7 @@ func iamAuth(url, profile, payload string) (string, string, error) {
 	}
 	signer := v4.NewSigner(cfg.Credentials, func(s *v4.Signer) {
 		// s.Logger = cfg.Logger
-		// s.Debug = aws.LogDebugWithSigning
+		s.Debug = aws.LogDebugWithSigning
 	})
 
 	hashBytes, err := makeSha256Reader(strings.NewReader(payload))
@@ -91,7 +95,7 @@ func iamAuth(url, profile, payload string) (string, string, error) {
 	if err != nil {
 		log.Printf("Error constructing request object")
 		log.Printf("Error: %v", err)
-		return "", "", err
+		return &IamHeaders{}, "", err
 	}
 
 	err = signer.SignHTTP(context.Background(), req, sha1Hash, "appsync", "us-east-2", time.Now())
@@ -101,18 +105,18 @@ func iamAuth(url, profile, payload string) (string, string, error) {
 		panic("unable to load SDK config, " + err.Error())
 
 	}
-
-	iamHeaders := &iamHeaders{
+	host := strings.Split(canonicalURI, "/")
+	log.Printf("%q\n", host)
+	iamHeaders := &IamHeaders{
 		Accept:            "application/json, text/javascript",
 		ContentEncoding:   "amz-1.0",
 		ContentType:       "application/json; charset=UTF-8",
-		Host:              strings.ReplaceAll(strings.ReplaceAll(url, "https://", ""), "/graphql", ""),
+		Host:              host[2],
 		XAmzDate:          req.Header.Get("X-Amz-Date"),
 		XAmzSecurityToken: req.Header.Get("X-Amz-Security-Token"),
 		Authorization:     req.Header.Get("Authorization"),
 	}
-	encodedBytes, err := json.Marshal(iamHeaders)
-	return string(encodedBytes), req.Header.Get("X-Amz-Security-Token"), nil
+	return iamHeaders, req.Header.Get("X-Amz-Security-Token"), nil
 }
 func main(apiURL string, apiAuth APIAuth) error {
 	var encoded string
@@ -122,7 +126,12 @@ func main(apiURL string, apiAuth APIAuth) error {
 	if apiAuth.AuthType == "API_KEY" {
 		encoded = base64.StdEncoding.EncodeToString([]byte("{\"host\":\"" + strings.ReplaceAll(strings.ReplaceAll(apiURL, "https://", ""), "/graphql", "") + "\",\"x-api-key\": \"" + apiAuth.APIKey + "\"}"))
 	} else if apiAuth.AuthType == "AWS_IAM" {
-		encodedBytes, _, err := iamAuth(apiURL, apiAuth.Profile, "{}")
+		canonicalURI := strings.ReplaceAll(apiURL, "https://", "wss://") + "/connect"
+		iamHeaders, _, err := iamAuth(canonicalURI, apiAuth.Profile, "{}")
+		if err != nil {
+			return err
+		}
+		encodedBytes, err := json.Marshal(iamHeaders)
 		if err != nil {
 			return err
 		}
@@ -164,6 +173,26 @@ func main(apiURL string, apiAuth APIAuth) error {
 		log.Printf("%+v", err)
 	}
 
+	data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
+
+	iamHeaders, _, err := iamAuth(apiURL, apiAuth.Profile, data)
+	uuid, err := generateUUID()
+	subRequest := &SubscriptionRequest{
+		ID: uuid,
+		Payload: SubscriptionRequestPayload{
+			Data: data,
+			Extensions: SubscriptionRequestExtensions{
+				Authorization: *iamHeaders,
+			},
+		},
+		Type: "start",
+	}
+	encodedBytes, err := json.Marshal(subRequest)
+	log.Print(string(encodedBytes))
+	err = c.WriteMessage(websocket.TextMessage, encodedBytes)
+	if err != nil {
+		log.Printf("%+v", err)
+	}
 	done := make(chan struct{})
 
 	go func() {
@@ -181,17 +210,24 @@ func main(apiURL string, apiAuth APIAuth) error {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
+	// log.Println("write:", t.String())
+	// err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
+	// if err != nil {
+	// 	log.Println("write:", err)
+	// 	return nil
+	// }
+
 	for {
 		select {
 		case <-done:
 			return nil
-		case t := <-ticker.C:
-			log.Println("write:", t.String())
-			err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
-			if err != nil {
-				log.Println("write:", err)
-				return nil
-			}
+		// case t := <-ticker.C:
+		// 	log.Println("write:", t.String())
+		// 	err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
+		// 	if err != nil {
+		// 		log.Println("write:", err)
+		// 		return nil
+		// 	}
 		case <-interrupt:
 			log.Println("interrupt")
 
