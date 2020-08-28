@@ -7,6 +7,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/external"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+	guuid "github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"io"
 	"log"
 	"math/rand"
@@ -16,34 +21,10 @@ import (
 	"os/signal"
 	"strings"
 	"time"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
-	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
-	"github.com/gorilla/websocket"
 )
 
-func generateUUID() (string, error) {
-	b := make([]byte, 16)
-	_, err := rand.Read(b)
-	if err != nil {
-		log.Print(err)
-		return "", err
-	}
-	uuid := fmt.Sprintf("%x-%x-%x-%x-%x",
-		b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
-	return uuid, nil
-}
-
-type nilBody struct{}
-
-func (nilBody) Read(p []byte) (int, error) {
-	return 0, io.EOF
-}
-
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute(i InputArguments, v VersionInfo) {
+// AppSyncClient is the instantiation metho
+func AppSyncClient(i InputArguments, v VersionInfo) {
 	version := v
 
 	if err := main(i.URL, i.APIAuth); err != nil {
@@ -167,18 +148,12 @@ func main(apiURL string, apiAuth APIAuth) error {
 	log.Print(string(message))
 	defer c.Close()
 
-	// // send message
-	err = c.WriteMessage(websocket.TextMessage, []byte("{\"type\": \"connection_init\"}"))
-	if err != nil {
-		log.Printf("%+v", err)
-	}
-
 	data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
 
 	iamHeaders, _, err := iamAuth(apiURL, apiAuth.Profile, data)
-	uuid, err := generateUUID()
+	uuid = guuid.New()
 	subRequest := &SubscriptionRequest{
-		ID: uuid,
+		ID: uuid.string(),
 		Payload: SubscriptionRequestPayload{
 			Data: data,
 			Extensions: SubscriptionRequestExtensions{
