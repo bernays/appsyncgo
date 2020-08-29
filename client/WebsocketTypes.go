@@ -1,5 +1,7 @@
 package client
 
+import "encoding/json"
+
 // IamHeaders- all headers required to sign websocket requests
 type IamHeaders struct {
 	Accept            string `json:"accept"`
@@ -16,6 +18,7 @@ type SubscriptionRequest struct {
 	ID      string                     `json:"id"`
 	Payload SubscriptionRequestPayload `json:"payload"`
 	Type    string                     `json:"type"`
+	Handler DataHandler                `json:"-"`
 }
 
 type SubscriptionRequestPayload struct {
@@ -25,4 +28,12 @@ type SubscriptionRequestPayload struct {
 
 type SubscriptionRequestExtensions struct {
 	Authorization IamHeaders `json:"authorization"`
+}
+
+type AppSyncMessage struct {
+	ID      string `json:"id"`
+	Type    string `json:"type"`
+	Payload struct {
+		Data json.RawMessage
+	} `json:"payload"`
 }

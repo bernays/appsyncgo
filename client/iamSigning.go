@@ -53,7 +53,6 @@ func iamAuth(canonicalURI, profile, payload string) (*IamHeaders, string, error)
 
 	}
 	host := strings.Split(canonicalURI, "/")
-	log.Printf("%q\n", host)
 	iamHeaders := &IamHeaders{
 		Accept:            "application/json, text/javascript",
 		ContentEncoding:   "amz-1.0",
