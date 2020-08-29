@@ -49,14 +49,27 @@ var logger = logrus.New()
 func init() {
 	logger.SetLevel(logrus.WarnLevel)
 }
-func CreateClient(url, profile string) (*AppSyncClient, error) {
+func CreateClient(urlAppSync, profile string) (*AppSyncClient, error) {
 
 	//TODO: Validate inputs and write tests
 	// 1. Ensure clean URL
 	// 2. Ensure that correct auth fields are present
-
+	val, err := url.ParseRequestURI(urlAppSync)
+	if err != nil {
+		logger.Error("unknown url")
+		logger.Error(err)
+		return &AppSyncClient{}, errors.New("INVALID_URI")
+	}
+	if val.Path != "/graphql" {
+		logger.Errorf("unknown path: %s", val.Path)
+		return &AppSyncClient{}, errors.New("INVALID_URI")
+	}
+	if val.Scheme != "https" {
+		logger.Errorf("must use https: %s", val.Scheme)
+		return &AppSyncClient{}, errors.New("INVALID_URI")
+	}
 	return &AppSyncClient{
-		URL: url,
+		URL: urlAppSync,
 		Auth: APIAuth{
 			Profile:  profile,
 			AuthType: "AWS_IAM",

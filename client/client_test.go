@@ -4,17 +4,47 @@ import (
 	"testing"
 )
 
-func TestCreateClientUrl(t *testing.T) {
+func TestCreateClientUrlMalformed(t *testing.T) {
 	// path needs to be /graphql
-	_, err := CreateClient("https://appid.appsync-api.us-east-2.amazonaws.com", "")
+	_, err := CreateClient("https//appid.appsync-api.us-east-2.amazonaws.com/graphql", "")
 	if err == nil {
 		t.Errorf("Bad URL, need a valid url")
 		t.FailNow()
 	}
-	// must use https
-	_, err = CreateClient("http://appid.appsync-api.us-east-2.amazonaws.com/graphql", "")
+	_, err = CreateClient("https://appid.appsync-api.us-east-2.amazonaws.com/graphql", "")
+	if err != nil {
+		t.Errorf("Bad URL, need a valid url")
+		t.FailNow()
+	}
+}
+
+func TestCreateClientUrlPath(t *testing.T) {
+	// path needs to be /graphql
+	_, err := CreateClient("https://appid.appsync-api.us-east-2.amazonaws.com/graphfql", "")
 	if err == nil {
-		t.Errorf("Bad URL, need to ")
+		t.Errorf("Must use /graphql as path")
+		t.FailNow()
+	}
+
+	_, err = CreateClient("https://appid.appsync-api.us-east-2.amazonaws.com/graphql", "")
+	if err != nil {
+		t.Errorf("Must use /graphql as path")
+		t.FailNow()
+	}
+}
+
+func TestCreateClientUrlHTTPS(t *testing.T) {
+	// must use https
+	_, err := CreateClient("http://appid.appsync-api.us-east-2.amazonaws.com/graphql", "")
+	if err == nil {
+		print(err)
+		t.Errorf("Must use HTTPS ")
+		t.FailNow()
+	}
+	_, err = CreateClient("https://appid.appsync-api.us-east-2.amazonaws.com/graphql", "")
+	if err != nil {
+		print(err)
+		t.Errorf("Must use HTTPS ")
 		t.FailNow()
 	}
 }
