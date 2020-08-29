@@ -18,3 +18,18 @@ func TestCreateClientUrl(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func TestCreateClientAuth(t *testing.T) {
+	// if API_KEY then only APIKey can be set
+	// if AWS_IAM and profile none of these Token, Key, Secret
+	// if AWS_IAM and profile is nil then  Key, Secret are required and Token is optional
+}
+
+func TestGenerateAuthFieldsAuthType(t *testing.T) {
+	// Any value other than AWS_IAM and API_KEY returns an error
+	// Test Compute Headers for API_KEY
+	// Test Compute Headers for Profile
+	// Test Compute Headers for Secret+Key
+	// Test Compute Headers for Secret+Key+Token
+
+}

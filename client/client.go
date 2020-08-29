@@ -105,6 +105,9 @@ func (client *AppSyncClient) StartConnection() error {
 
 	if err != nil {
 		logger.Printf("%+v", err)
+		// TODO: Handle retryable errors
+		// Ensure backoff and jitter
+		return err
 	}
 
 	// // send message
@@ -152,6 +155,8 @@ func (client *AppSyncClient) readData() {
 		_, message, err := client.Connection.ReadMessage()
 		if err != nil {
 			logger.Println("read:", err)
+			// TODO: understand if error is because connection was closed
+			// Close connection, and retry
 			return
 		}
 		logger.Printf("recv: %s", message)
@@ -165,7 +170,7 @@ func (client *AppSyncClient) Query(method, variables, query string) (string, err
 }
 
 func (client *AppSyncClient) CloseConnection() error {
-
+	// TODO: Close subscriptions with AppSync
 	if client.Connection != nil {
 		logger.Printf("Closing Connection")
 		client.Connection.Close()
