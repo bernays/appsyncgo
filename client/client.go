@@ -49,7 +49,7 @@ var logger = logrus.New()
 func init() {
 	logger.SetLevel(logrus.WarnLevel)
 }
-func CreateClient(url, profile string) *AppSyncClient {
+func CreateClient(url, profile string) (*AppSyncClient, error) {
 
 	//TODO: Validate inputs and write tests
 	// 1. Ensure clean URL
@@ -61,7 +61,7 @@ func CreateClient(url, profile string) *AppSyncClient {
 			Profile:  profile,
 			AuthType: "AWS_IAM",
 		},
-	}
+	}, nil
 }
 
 func (client *AppSyncClient) GenerateAuthFields() (string, error) {
