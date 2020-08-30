@@ -6,17 +6,28 @@ import (
 )
 
 func WeGotData(data string) error {
-	log.Printf("Client Side data: %s", data)
+	logger.Printf("Client Side data: %s", data)
 	return nil
 }
 
-var log = logrus.New()
+var logger = logrus.New()
 
+func init() {
+	logger.SetLevel(logrus.DebugLevel)
+}
 func main() {
-	client := appsync.CreateClient("https://whom3blq6vhxhd6rkt3offziva.appsync-api.us-east-2.amazonaws.com/graphql", "default")
-	defer client.CloseConnection()
+	logger.Error("started")
+	client, err := appsync.CreateClient("https://whom3blq6vhxhd6rkt3offziva.appsync-api.us-east-2.amazonaws.com/graphql", "default")
+	logger.Error("returned")
+	if err != nil {
+		logger.Error("error")
+		logger.Error(err)
+	}
+	defer client.CloseConnection(false, false)
 	client.StartConnection()
+
 	data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
+	logger.Debug(data)
 	client.Subscribe(data, WeGotData)
 	for {
 

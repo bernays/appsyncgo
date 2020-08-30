@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 type AppSyncClient struct {
@@ -47,7 +48,7 @@ type Subscription struct {
 var logger = logrus.New()
 
 func init() {
-	logger.SetLevel(logrus.WarnLevel)
+	logger.SetLevel(logrus.DebugLevel)
 }
 func CreateClient(urlAppSync, profile string) (*AppSyncClient, error) {
 
@@ -60,13 +61,14 @@ func CreateClient(urlAppSync, profile string) (*AppSyncClient, error) {
 		logger.Error(err)
 		return &AppSyncClient{}, errors.New("INVALID_URI")
 	}
+
 	if val.Path != "/graphql" {
 		logger.Errorf("unknown path: %s", val.Path)
-		return &AppSyncClient{}, errors.New("INVALID_URI")
+		return &AppSyncClient{}, errors.New("INVALID_URI_PATH")
 	}
 	if val.Scheme != "https" {
 		logger.Errorf("must use https: %s", val.Scheme)
-		return &AppSyncClient{}, errors.New("INVALID_URI")
+		return &AppSyncClient{}, errors.New("INVALID_URI_SCHEME")
 	}
 	return &AppSyncClient{
 		URL: urlAppSync,
@@ -117,7 +119,7 @@ func (client *AppSyncClient) StartConnection() error {
 	client.Connection, _, err = websocket.DefaultDialer.Dial(u.String(), h)
 
 	if err != nil {
-		logger.Printf("%+v", err)
+		logger.Errorf("%+v", err)
 		// TODO: Handle retryable errors
 		// Ensure backoff and jitter
 		return err
@@ -126,15 +128,28 @@ func (client *AppSyncClient) StartConnection() error {
 	// // send message
 	err = client.Connection.WriteMessage(websocket.TextMessage, []byte("{\"type\": \"connection_init\"}"))
 	if err != nil {
-		logger.Printf("%+v", err)
+		logger.Errorf("%+v", err)
 	}
 
 	// receive message
 	_, message, err := client.Connection.ReadMessage()
 	if err != nil {
 		// handle error
-		logger.Printf("%+v", err)
+		logger.Errorf("%+v", err)
 	}
+
+	var newSubscriptions []Subscription
+	for _, s := range client.Subscriptions {
+		s.ID = guuid.New().String()
+		err := client.internalSubscribe(s)
+		if err != nil {
+			logger.Error("Unable to resubscribe to subscription")
+		} else {
+			newSubscriptions = append(newSubscriptions, s)
+		}
+
+	}
+	client.Subscriptions = newSubscriptions
 	logger.Debug(string(message))
 	client.Data = make(chan []byte)
 	go client.readData()
@@ -164,59 +179,89 @@ func (client *AppSyncClient) processData() {
 }
 func (client *AppSyncClient) readData() {
 	for {
-		logger.Printf("Waiting for message")
+		logger.Debug("Waiting for message")
+		client.Connection.SetReadDeadline(time.Now().Add(10 * time.Second))
 		_, message, err := client.Connection.ReadMessage()
-		if err != nil {
-			logger.Println("read:", err)
+		if os.IsTimeout(err) {
+			logger.Error("Timeout!:")
+			logger.Error(err)
+			client.CloseConnection(true, true)
+			break
+		} else if err != nil {
+			logger.Error("read:", err)
 			// TODO: understand if error is because connection was closed
 			// Close connection, and retry
-			return
+			client.CloseConnection(true, false)
+			break
 		}
 		logger.Printf("recv: %s", message)
 		client.Data <- message
 	}
-
 }
 
 func (client *AppSyncClient) Query(method, variables, query string) (string, error) {
 	return "", nil
 }
 
-func (client *AppSyncClient) CloseConnection() error {
+func (client *AppSyncClient) CloseConnection(restart, timeout bool) error {
 	// TODO: Close subscriptions with AppSync
 	if client.Connection != nil {
 		logger.Printf("Closing Connection")
 		client.Connection.Close()
+		if !timeout {
+			for _, s := range client.Subscriptions {
+				closingString := "{ \"type\":\"stop\",\"id\":\"" + s.ID + "\"}"
+				err := client.Connection.WriteMessage(websocket.TextMessage, []byte(closingString))
+				if err != nil {
+					logger.Errorf("%+v", err)
+				}
+			}
+		}
+		if restart {
+			client.StartConnection()
+		} else {
+
+		}
 	} else {
 		logger.Printf("No Connection to close")
 	}
 	return nil
 }
-func (client *AppSyncClient) Subscribe(Query string, Handler DataHandler) (string, error) {
-	iamHeaders, _, err := iamAuth(client.URL, client.Auth.Profile, Query)
-	uuid := guuid.New()
+
+func (client *AppSyncClient) internalSubscribe(subscription Subscription) error {
+	iamHeaders, _, err := iamAuth(client.URL, client.Auth.Profile, subscription.Query)
 	subRequest := &SubscriptionRequest{
-		ID: uuid.String(),
+		ID: subscription.ID,
 		Payload: SubscriptionRequestPayload{
-			Data: Query,
+			Data: subscription.Query,
 			Extensions: SubscriptionRequestExtensions{
 				Authorization: *iamHeaders,
 			},
 		},
 		Type:    "start",
-		Handler: Handler,
+		Handler: subscription.Handler,
 	}
-
-	client.Subscriptions = append(client.Subscriptions, Subscription{
-		Handler: Handler,
-		ID:      uuid.String(),
-	})
-
 	encodedBytes, err := json.Marshal(subRequest)
 	if err != nil {
 		logger.Println("marshalling:", err)
 	}
 	logger.Debug(string(encodedBytes))
 	err = client.Connection.WriteMessage(websocket.TextMessage, encodedBytes)
+	return err
+}
+
+func (client *AppSyncClient) Subscribe(Query string, Handler DataHandler) (string, error) {
+	uuid := guuid.New()
+
+	subscription := Subscription{
+		Handler: Handler,
+		ID:      uuid.String(),
+		Query:   Query,
+	}
+	err := client.internalSubscribe(subscription)
+	if err != nil {
+		return "", err
+	}
+	client.Subscriptions = append(client.Subscriptions, subscription)
 	return "", err
 }

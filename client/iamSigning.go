@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -18,9 +19,9 @@ import (
 func iamAuth(canonicalURI, profile, payload string) (*IamHeaders, string, error) {
 
 	cfg, err := external.LoadDefaultAWSConfig(
-	// external.WithSharedConfigProfile("default"),
-	// aws.WithLogLevel(aws.LogDebugWithSigning),
-	// external.WithDefaultRegion("us-east-2"),
+		external.WithSharedConfigProfile(profile),
+		//aws.WithLogLevel(aws.LogDebugWithSigning),
+		//external.WithDefaultRegion("us-east-2"),
 	)
 	if err != nil {
 		log.Printf("%+v", err)
@@ -34,7 +35,7 @@ func iamAuth(canonicalURI, profile, payload string) (*IamHeaders, string, error)
 
 	hashBytes, err := makeSha256Reader(strings.NewReader(payload))
 	if err != nil {
-		log.Printf("Error: %v", err)
+		logger.Error("Error: %v", err)
 	}
 	sha1Hash := hex.EncodeToString(hashBytes)
 
@@ -44,8 +45,14 @@ func iamAuth(canonicalURI, profile, payload string) (*IamHeaders, string, error)
 		log.Printf("Error: %v", err)
 		return &IamHeaders{}, "", err
 	}
+	var signingTime time.Time
 
-	err = signer.SignHTTP(context.Background(), req, sha1Hash, "appsync", "us-east-2", time.Now())
+	if os.Getenv("GO_ENV") == "testing" {
+		signingTime = time.Unix(0, 0)
+	} else {
+		signingTime = time.Now()
+	}
+	err = signer.SignHTTP(context.Background(), req, sha1Hash, "appsync", "us-east-2", signingTime)
 
 	if err != nil {
 		log.Printf("%+v", err)
