@@ -10,13 +10,13 @@ Connection recycling and reconnection is built in
 
 
 To do:
-    - [] Clean up logging
-    - [] implement interface to allow for synchronous Query and Mutations
-    - [] Add tests for API_KEY authentication
-    - [] Add tests for conenction retry
-    - [] Cleanup error handling
-    - [] Add support for Cognito Auth
-    - [] Add support for specifying key,secret and token (optional)
+- [] Clean up logging
+- [] implement interface to allow for synchronous Query and Mutations
+- [] Add tests for API_KEY authentication
+- [] Add tests for conenction retry
+- [] Cleanup error handling
+- [] Add support for Cognito Auth
+- [] Add support for specifying key,secret and token (optional)
     
     
     
