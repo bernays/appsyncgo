@@ -1,5 +1,6 @@
 # appsync-go-client
 
+![Go](https://github.com/bernays/appsync-go-client/workflows/Go/badge.svg)
 This client library is designed to provide a stable interface for AppSync.
 
 
