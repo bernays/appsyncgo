@@ -35,7 +35,7 @@ func iamAuth(canonicalURI, profile, payload string) (*IamHeaders, string, error)
 
 	hashBytes, err := makeSha256Reader(strings.NewReader(payload))
 	if err != nil {
-		logger.Error("Error: %+v", err)
+		logger.Errorf("Error: %+v", err)
 	}
 	sha1Hash := hex.EncodeToString(hashBytes)
 
