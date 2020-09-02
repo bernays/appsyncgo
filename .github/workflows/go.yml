@@ -36,11 +36,8 @@ jobs:
     - name: Test Main package
       run: go test -v .
     
-    - name: Test Main package
-      run: cd ./client
-    
     - name: Build client package
-      run: go build -v .
+      run: cd ./client && go build -v .
 
     - name: Test client package
-      run: go test -v .
+      run: cd ./client && go test -v .
