@@ -3,9 +3,10 @@ package main
 import (
 	appsync "github.com/bernays/appsync-go-client/client"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
-func WeGotData(data string) error {
+func HandleData(data string) error {
 	logger.Printf("Client Side data: %s", data)
 	return nil
 }
@@ -18,18 +19,15 @@ func init() {
 func main() {
 	logger.Error("started")
 	client, err := appsync.CreateClient("https://whom3blq6vhxhd6rkt3offziva.appsync-api.us-east-2.amazonaws.com/graphql", "default")
-	logger.Error("returned")
 	if err != nil {
-		logger.Error("error")
 		logger.Error(err)
 	}
 	defer client.CloseConnection(false, false)
 	client.StartConnection()
 
 	data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
-	logger.Debug(data)
-	client.Subscribe(data, WeGotData)
+	client.Subscribe(data, HandleData)
 	for {
-
+		time.Sleep(2 * time.Second)
 	}
 }
