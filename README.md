@@ -1,7 +1,7 @@
 # appsync-go-client
 
 
-![Go](https://github.com/bernays/appsync-go-client/workflows/Go/badge.svg)
+![Go](https://github.com/bernays/appsyncgo/workflows/Go/badge.svg)
 
 
 
@@ -16,7 +16,7 @@ Connection recycling and reconnection is built in to handle network issues
 
 ```
 import (
-	appsync "github.com/bernays/appsync-go-client/client"
+	appsync "github.com/bernays/appsyncgo/client"
 	"github.com/sirupsen/logrus"
 	"time"
 )

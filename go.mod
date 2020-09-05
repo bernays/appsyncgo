@@ -1,4 +1,4 @@
-module github.com/bernays/appsync-go-client
+module github.com/bernays/appsyncgo
 
 go 1.15
 

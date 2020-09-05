@@ -1,7 +1,7 @@
 package main
 
 import (
-	appsync "github.com/bernays/appsync-go-client/client"
+	appsync "github.com/bernays/appsyncgo/client"
 	"github.com/sirupsen/logrus"
 	"time"
 )
