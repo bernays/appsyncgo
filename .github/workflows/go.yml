@@ -31,10 +31,10 @@ jobs:
         fi
 
     - name: Build Main package
-      run: go build -v .
+      run: cd example && go build -v .
 
     - name: Test Main package
-      run: go test -v .
+      run: cd example &&  go test -v .
     
     - name: Build client package
       run: cd ./client && go build -v .
