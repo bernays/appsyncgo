@@ -5,7 +5,6 @@
 
 
 
-
 This client library is designed to provide a stable interface for programs to interact with AppSync.
 
 It uses native websockets so is able to take advantage of the realtime ability of subscriptions.
@@ -35,6 +34,7 @@ func init() {
 
 // Can run in main scope or in parallel go routine
 func main() {
+	// default profile will be used to grab credentials and sign reqs
 	client, err := appsync.CreateClient("https://whom3blq6vhxhd6rkt3offziva.appsync-api.us-east-2.amazonaws.com/graphql", "default")
 	if err != nil {
 		logger.Error(err)
