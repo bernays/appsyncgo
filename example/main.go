@@ -3,7 +3,7 @@ package main
 import (
 	appsync "github.com/bernays/appsyncgo/client"
 	"github.com/sirupsen/logrus"
-	//"time"
+	"time"
 )
 
 func HandleData(data string) error {
@@ -24,10 +24,10 @@ func main() {
 	}
 	defer client.CloseConnection(false, false)
 	client.StartConnection()
-	client.Query("t", "t", "t")
-	// data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
-	// client.Subscribe(data, HandleData)
-	// for {
-	// 	time.Sleep(2 * time.Second)
-	// }
+
+	data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
+	client.Subscribe(data, HandleData)
+	for {
+		time.Sleep(2 * time.Second)
+	}
 }
