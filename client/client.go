@@ -87,7 +87,11 @@ func (client *AppSyncClient) GenerateAuthFields() (string, error) {
 		return base64.StdEncoding.EncodeToString(encodedBytes), nil
 	} else if client.Auth.AuthType == "AWS_IAM" {
 		canonicalURI := strings.ReplaceAll(apiURL, "https://", "wss://") + "/connect"
-		iamHeaders, _, err := iamAuth(canonicalURI, client.Auth.Profile, "{}")
+		req, err := http.NewRequest("POST", canonicalURI, nil)
+		if err != nil {
+			return "", err
+		}
+		iamHeaders, _, err := iamAuth(req, client.Auth.Profile, "{}")
 		if err != nil {
 			return "", err
 		}
@@ -99,6 +103,8 @@ func (client *AppSyncClient) GenerateAuthFields() (string, error) {
 	}
 	return "", errors.New("Unknown AuthType")
 }
+
+// StartConnection- Starts long running websocket connection to AppSync,
 func (client *AppSyncClient) StartConnection() error {
 
 	encoded, err := client.GenerateAuthFields()
@@ -177,6 +183,7 @@ func (client *AppSyncClient) processData() {
 
 	}
 }
+
 func (client *AppSyncClient) readData() {
 	for {
 		logger.Debug("Waiting for message")
@@ -199,8 +206,10 @@ func (client *AppSyncClient) readData() {
 	}
 }
 
+// Query allows user to synchronously interact with API
 func (client *AppSyncClient) Query(method, variables, query string) (string, error) {
-	return "", nil
+	resp, err := client.httpRequest(`{"query": "query { singlePost(id: \"22\") {id title } }"}`)
+	return resp, err
 }
 
 func (client *AppSyncClient) CloseConnection(restart, timeout bool) error {
@@ -229,7 +238,11 @@ func (client *AppSyncClient) CloseConnection(restart, timeout bool) error {
 }
 
 func (client *AppSyncClient) internalSubscribe(subscription Subscription) error {
-	iamHeaders, _, err := iamAuth(client.URL, client.Auth.Profile, subscription.Query)
+	req, err := http.NewRequest("POST", client.URL, nil)
+	if err != nil {
+		return err
+	}
+	iamHeaders, _, err := iamAuth(req, client.Auth.Profile, subscription.Query)
 	subRequest := &SubscriptionRequest{
 		ID: subscription.ID,
 		Payload: SubscriptionRequestPayload{
