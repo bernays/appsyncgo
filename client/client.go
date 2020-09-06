@@ -244,8 +244,7 @@ func (client *AppSyncClient) CloseConnection(restart, timeout bool) error {
 	return nil
 }
 
-
-func (client *AppSyncClient) internalSubscribe(subscription Subscription) error {
+func (client *AppSyncClient) internalSubscribe(subscription subscription) error {
 	req, err := http.NewRequest("POST", client.URL, nil)
 	if err != nil {
 		return err
