@@ -92,11 +92,7 @@ func (client *AppSyncClient) generateAuthFields() (string, error) {
 		return base64.StdEncoding.EncodeToString(encodedBytes), nil
 	} else if client.Auth.AuthType == "AWS_IAM" {
 		canonicalURI := strings.ReplaceAll(apiURL, "https://", "wss://") + "/connect"
-		req, err := http.NewRequest("POST", canonicalURI, nil)
-		if err != nil {
-			return "", err
-		}
-		iamHeaders, _, err := iamHeaders(req, client.Auth.Profile, "{}")
+		iamHeaders, _, err := iamAuth(canonicalURI, client.Auth.Profile, "{}")
 		if err != nil {
 			return "", err
 		}
@@ -212,9 +208,8 @@ func (client *AppSyncClient) readData() {
 }
 
 // Query allows user to synchronously interact with API
-func (client *AppSyncClient) Query(method, variables, query string) (string, error) {
-	resp, err := client.httpRequest(`{"query": "query { singlePost(id: \"22\") {id title } }"}`)
-	return resp, err
+func (client *AppSyncClient) Query(method, variables, query string) (str string, err error) {
+	return str, err
 }
 
 // CloseConnection closes connections and unsubscribes from subscriptions (if necessary)
@@ -244,11 +239,7 @@ func (client *AppSyncClient) CloseConnection(restart, timeout bool) error {
 }
 
 func (client *AppSyncClient) internalSubscribe(subscription subscription) error {
-	req, err := http.NewRequest("POST", client.URL, nil)
-	if err != nil {
-		return err
-	}
-	iamHeaders, _, err := iamHeaders(req, client.Auth.Profile, subscription.Query)
+	iamHeaders, _, err := iamAuth(client.URL, client.Auth.Profile, subscription.Query)
 	subRequest := &SubscriptionRequest{
 		ID: subscription.ID,
 		Payload: subscriptionRequestPayload{
