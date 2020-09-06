@@ -91,7 +91,7 @@ func (client *AppSyncClient) GenerateAuthFields() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		iamHeaders, _, err := iamAuth(req, client.Auth.Profile, "{}")
+		iamHeaders, _, err := iamHeaders(req, client.Auth.Profile, "{}")
 		if err != nil {
 			return "", err
 		}
@@ -242,7 +242,7 @@ func (client *AppSyncClient) internalSubscribe(subscription Subscription) error 
 	if err != nil {
 		return err
 	}
-	iamHeaders, _, err := iamAuth(req, client.Auth.Profile, subscription.Query)
+	iamHeaders, _, err := iamHeaders(req, client.Auth.Profile, subscription.Query)
 	subRequest := &SubscriptionRequest{
 		ID: subscription.ID,
 		Payload: SubscriptionRequestPayload{
