@@ -15,11 +15,12 @@ import (
 	"time"
 )
 
+// AppSyncClient main object containing all of the information about connections to the API
 type AppSyncClient struct {
 	Connection    *(websocket.Conn)
 	URL           string
 	Auth          APIAuth
-	Subscriptions []Subscription
+	Subscriptions []subscription
 	Data          chan []byte
 	Done          chan struct{}
 	Interrupt     chan os.Signal
@@ -35,11 +36,13 @@ type APIAuth struct {
 	AwsSecurityToken string // Only required if Type is AWS_IAM and not using profile
 
 }
-type DataHandler func(string) error
-type Subscription struct {
+
+// CallbackFn is the function that the client invokes upon reciept
+type CallbackFn func(string) error
+type subscription struct {
 	ID      string
 	Query   string
-	Handler DataHandler
+	Handler CallbackFn
 
 	//OnData  function
 	//OnError function
@@ -50,6 +53,8 @@ var logger = logrus.New()
 func init() {
 	logger.SetLevel(logrus.DebugLevel)
 }
+
+// CreateClient initialization function that enables users to create a Client object
 func CreateClient(urlAppSync, profile string) (*AppSyncClient, error) {
 
 	//TODO: Validate inputs and write tests
@@ -79,7 +84,7 @@ func CreateClient(urlAppSync, profile string) (*AppSyncClient, error) {
 	}, nil
 }
 
-func (client *AppSyncClient) GenerateAuthFields() (string, error) {
+func (client *AppSyncClient) generateAuthFields() (string, error) {
 	apiURL := client.URL
 	if client.Auth.AuthType == "API_KEY" {
 		host := strings.ReplaceAll(strings.ReplaceAll(apiURL, "https://", ""), "/graphql", "")
@@ -107,7 +112,7 @@ func (client *AppSyncClient) GenerateAuthFields() (string, error) {
 // StartConnection- Starts long running websocket connection to AppSync,
 func (client *AppSyncClient) StartConnection() error {
 
-	encoded, err := client.GenerateAuthFields()
+	encoded, err := client.generateAuthFields()
 	h := http.Header{}
 	h.Add("Sec-WebSocket-Protocol", "graphql-ws")
 	u := url.URL{
@@ -144,7 +149,7 @@ func (client *AppSyncClient) StartConnection() error {
 		logger.Errorf("%+v", err)
 	}
 
-	var newSubscriptions []Subscription
+	var newSubscriptions []subscription
 	for _, s := range client.Subscriptions {
 		s.ID = guuid.New().String()
 		err := client.internalSubscribe(s)
@@ -167,7 +172,7 @@ func (client *AppSyncClient) processData() {
 	for {
 		message := <-client.Data
 		logger.Printf("process: %s", message)
-		var wsMessage AppSyncMessage
+		var wsMessage appSyncMessage
 		err := json.Unmarshal([]byte(message), &wsMessage)
 		if err != nil {
 			fmt.Println("error:", err)
@@ -210,8 +215,10 @@ func (client *AppSyncClient) readData() {
 func (client *AppSyncClient) Query(method, variables, query string) (string, error) {
 	resp, err := client.httpRequest(`{"query": "query { singlePost(id: \"22\") {id title } }"}`)
 	return resp, err
+
 }
 
+// CloseConnection closes connections and unsubscribes from subscriptions (if necessary)
 func (client *AppSyncClient) CloseConnection(restart, timeout bool) error {
 	// TODO: Close subscriptions with AppSync
 	if client.Connection != nil {
@@ -237,6 +244,7 @@ func (client *AppSyncClient) CloseConnection(restart, timeout bool) error {
 	return nil
 }
 
+
 func (client *AppSyncClient) internalSubscribe(subscription Subscription) error {
 	req, err := http.NewRequest("POST", client.URL, nil)
 	if err != nil {
@@ -245,9 +253,9 @@ func (client *AppSyncClient) internalSubscribe(subscription Subscription) error 
 	iamHeaders, _, err := iamHeaders(req, client.Auth.Profile, subscription.Query)
 	subRequest := &SubscriptionRequest{
 		ID: subscription.ID,
-		Payload: SubscriptionRequestPayload{
+		Payload: subscriptionRequestPayload{
 			Data: subscription.Query,
-			Extensions: SubscriptionRequestExtensions{
+			Extensions: subscriptionRequestExtensions{
 				Authorization: *iamHeaders,
 			},
 		},
@@ -263,10 +271,11 @@ func (client *AppSyncClient) internalSubscribe(subscription Subscription) error 
 	return err
 }
 
-func (client *AppSyncClient) Subscribe(Query string, Handler DataHandler) (string, error) {
+//Subscribe subscribes to a specific websocket. This uses the generic websocket subscriptions
+func (client *AppSyncClient) Subscribe(Query string, Handler CallbackFn) (string, error) {
 	uuid := guuid.New()
 
-	subscription := Subscription{
+	subscription := subscription{
 		Handler: Handler,
 		ID:      uuid.String(),
 		Query:   Query,

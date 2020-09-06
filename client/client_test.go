@@ -80,7 +80,7 @@ func TestGenerateAuthFieldsAuthType(t *testing.T) {
 			AuthType: "AWS_IAM",
 		},
 	}
-	encoded, err := ASC.GenerateAuthFields()
+	encoded, err := ASC.generateAuthFields()
 	if err != nil {
 		logger.Error("decode error:", err)
 		return
