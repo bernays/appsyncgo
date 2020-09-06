@@ -18,7 +18,7 @@ type SubscriptionRequest struct {
 	ID      string                     `json:"id"`
 	Payload subscriptionRequestPayload `json:"payload"`
 	Type    string                     `json:"type"`
-	Handler DataHandler                `json:"-"`
+	Handler CallbackFn                 `json:"-"`
 }
 
 type subscriptionRequestPayload struct {

@@ -20,7 +20,7 @@ type AppSyncClient struct {
 	Connection    *(websocket.Conn)
 	URL           string
 	Auth          APIAuth
-	Subscriptions []Subscription
+	Subscriptions []subscription
 	Data          chan []byte
 	Done          chan struct{}
 	Interrupt     chan os.Signal
@@ -149,7 +149,7 @@ func (client *AppSyncClient) StartConnection() error {
 		logger.Errorf("%+v", err)
 	}
 
-	var newSubscriptions []Subscription
+	var newSubscriptions []subscription
 	for _, s := range client.Subscriptions {
 		s.ID = guuid.New().String()
 		err := client.internalSubscribe(s)
@@ -251,9 +251,9 @@ func (client *AppSyncClient) internalSubscribe(subscription subscription) error 
 	iamHeaders, _, err := iamHeaders(req, client.Auth.Profile, subscription.Query)
 	subRequest := &SubscriptionRequest{
 		ID: subscription.ID,
-		Payload: SubscriptionRequestPayload{
+		Payload: subscriptionRequestPayload{
 			Data: subscription.Query,
-			Extensions: SubscriptionRequestExtensions{
+			Extensions: subscriptionRequestExtensions{
 				Authorization: *iamHeaders,
 			},
 		},
@@ -273,7 +273,7 @@ func (client *AppSyncClient) internalSubscribe(subscription subscription) error 
 func (client *AppSyncClient) Subscribe(Query string, Handler CallbackFn) (string, error) {
 	uuid := guuid.New()
 
-	subscription := Subscription{
+	subscription := subscription{
 		Handler: Handler,
 		ID:      uuid.String(),
 		Query:   Query,
