@@ -2,7 +2,7 @@ package client
 
 import "encoding/json"
 
-// IamHeaders- all headers required to sign websocket requests
+// IamHeaders object contains headers required to sign websocket requests
 type IamHeaders struct {
 	Accept            string `json:"accept"`
 	ContentEncoding   string `json:"content-encoding"`
@@ -13,24 +13,24 @@ type IamHeaders struct {
 	Authorization     string `json:"Authorization"`
 }
 
-// SubscriptionRequest- APpSync template
+// SubscriptionRequest a request submitted to the client object to subscribe and handle data via a subscription
 type SubscriptionRequest struct {
 	ID      string                     `json:"id"`
-	Payload SubscriptionRequestPayload `json:"payload"`
+	Payload subscriptionRequestPayload `json:"payload"`
 	Type    string                     `json:"type"`
-	Handler DataHandler                `json:"-"`
+	Handler CallbackFn                 `json:"-"`
 }
 
-type SubscriptionRequestPayload struct {
+type subscriptionRequestPayload struct {
 	Data       string                        `json:"data"`
-	Extensions SubscriptionRequestExtensions `json:"extensions"`
+	Extensions subscriptionRequestExtensions `json:"extensions"`
 }
 
-type SubscriptionRequestExtensions struct {
+type subscriptionRequestExtensions struct {
 	Authorization IamHeaders `json:"authorization"`
 }
 
-type AppSyncMessage struct {
+type appSyncMessage struct {
 	ID      string `json:"id"`
 	Type    string `json:"type"`
 	Payload struct {
