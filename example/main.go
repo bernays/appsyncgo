@@ -24,7 +24,8 @@ func main() {
 	}
 	defer client.CloseConnection(false, false)
 	client.StartConnection()
-	client.Query("t", "t", "t")
+	reqc := appsync.AppSyncRequest{Query: `query { singlePost(id: "22") {id title } }`}
+	client.Query(reqc)
 	// data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
 	// client.Subscribe(data, HandleData)
 	// for {

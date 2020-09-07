@@ -212,9 +212,13 @@ func (client *AppSyncClient) readData() {
 }
 
 // Query allows user to synchronously interact with API
-func (client *AppSyncClient) Query(method, variables, query string) (string, error) {
-	resp, err := client.httpRequest(`{"query": "query { singlePost(id: \"22\") {id title } }"}`)
-	return resp, err
+func (client *AppSyncClient) Query(req AppSyncRequest) (AppSyncResponse, error) {
+	b, err := json.Marshal(req)
+	logger.Print(string(b))
+	resp, err := client.httpRequest(string(b))
+	var appSyncResp AppSyncResponse
+	err = json.Unmarshal([]byte(resp), appSyncResp)
+	return appSyncResp, err
 
 }
 

@@ -37,3 +37,15 @@ type appSyncMessage struct {
 		Data json.RawMessage
 	} `json:"payload"`
 }
+
+// AppSyncResponse response from appsync, Data can be null if their is an error or no data was returned
+type AppSyncResponse struct {
+	Data   string `json:"data"`
+	Errors string `json:"errors"`
+}
+
+// AppSyncRequest asdfadsf
+type AppSyncRequest struct {
+	Query     string `json:"query"`
+	Variables string `json:"variables"`
+}
