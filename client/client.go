@@ -214,7 +214,9 @@ func (client *AppSyncClient) readData() {
 // Query allows user to synchronously interact with API
 func (client *AppSyncClient) Query(req AppSyncRequest) (AppSyncResponse, error) {
 	b, err := json.Marshal(req)
-	logger.Print(string(b))
+	if err != nil {
+		return AppSyncResponse{}, err
+	}
 	resp, err := client.httpRequest(string(b))
 	var appSyncResp AppSyncResponse
 	err = json.Unmarshal([]byte(resp), appSyncResp)
