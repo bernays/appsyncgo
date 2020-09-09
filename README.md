@@ -1,7 +1,7 @@
 # appsync-go-client
 
 
-![Go](https://github.com/bernays/appsyncgo/workflows/Go/badge.svg)
+![Go](https://github.com/bernays/appsyncgo/workflows/Go/badge.svg)  [![PkgGoDev](https://pkg.go.dev/badge/mod/github.com/bernays/appsyncgo)](https://pkg.go.dev/mod/github.com/bernays/appsyncgo)
 
 
 
