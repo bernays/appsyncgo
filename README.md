@@ -1,7 +1,7 @@
 # appsync-go-client
 
 
-![Go](https://github.com/bernays/appsyncgo/workflows/Go/badge.svg)
+![Go](https://github.com/bernays/appsyncgo/workflows/Go/badge.svg)  [![PkgGoDev](https://pkg.go.dev/badge/mod/github.com/bernays/appsyncgo)](https://pkg.go.dev/mod/github.com/bernays/appsyncgo)
 
 
 
@@ -51,16 +51,3 @@ func main() {
 	}
 }
 ```
-
-
-To do:
-- [ ] Clean up logging
-- [ ] implement interface to allow for synchronous Query and Mutations
-- [ ] Add tests for API_KEY authentication
-- [ ] Add tests for conenction retry
-- [ ] Cleanup error handling
-- [ ] Add support for Cognito Auth
-- [ ] Add support for specifying key,secret and token (optional)
-    
-    
-    
