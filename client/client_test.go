@@ -67,9 +67,24 @@ func TestGenerateAuthFieldsAuthType(t *testing.T) {
 	AwsProfile := "Testing"
 	tempDir := t.TempDir()
 	f, err := os.Create(tempDir + "/dat2")
+	if err != nil {
+		t.FailNow()
+	}
 	_, err = f.WriteString("[" + AwsProfile + "]\n")
+
+	if err != nil {
+		t.FailNow()
+	}
 	_, err = f.WriteString("aws_access_key_id=KEY\n")
+	if err != nil {
+		t.FailNow()
+	}
 	_, err = f.WriteString("aws_secret_access_key=SECRET\n")
+
+	if err != nil {
+		t.FailNow()
+	}
+
 	f.Close()
 	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", tempDir+"/dat2")
 	os.Setenv("GO_ENV", "testing")
@@ -91,7 +106,9 @@ func TestGenerateAuthFieldsAuthType(t *testing.T) {
 		print(err)
 	}
 	err = json.Unmarshal([]byte(decoded), &headers)
-
+	if err != nil {
+		t.FailNow()
+	}
 	if headers.Accept != "application/json, text/javascript" {
 		t.Errorf("Invalid Headers, Accept")
 		t.FailNow()

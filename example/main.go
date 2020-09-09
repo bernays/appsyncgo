@@ -22,11 +22,20 @@ func main() {
 	if err != nil {
 		logger.Error(err)
 	}
-	defer client.CloseConnection(false, false)
-	client.StartConnection()
+	defer func() {
+		err = client.CloseConnection(false, false)
+		logger.Error(err)
 
+	}()
+	err = client.StartConnection()
+	if err != nil {
+		logger.Error(err)
+	}
 	data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
-	client.Subscribe(data, HandleData)
+	_, err = client.Subscribe(data, HandleData)
+	if err != nil {
+		logger.Error(err)
+	}
 	for {
 		time.Sleep(2 * time.Second)
 	}
