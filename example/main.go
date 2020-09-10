@@ -32,7 +32,11 @@ func main() {
 		logger.Error(err)
 	}
 	reqc := appsync.AppSyncRequest{Query: `query { singlePost(id: "22") {id title } }`}
-	client.Query(reqc)
+	response, err := client.Query(reqc)
+	if err != nil {
+		logger.Error(err)
+	}
+	logger.Print(response)
 	data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
 	_, err = client.Subscribe(data, HandleData)
 	if err != nil {

@@ -55,7 +55,7 @@ func iamAuth(req *http.Request, profile, payload string) (*http.Request, error) 
 func iamHeaders(req *http.Request, profile, payload string) (*IamHeaders, string, error) {
 	signedReq, err := iamAuth(req, profile, payload)
 	if err != nil {
-
+		logger.Error(err)
 	}
 
 	host := strings.Split(signedReq.URL.String(), "/")

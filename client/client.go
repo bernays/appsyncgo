@@ -231,8 +231,11 @@ func (client *AppSyncClient) Query(req AppSyncRequest) (AppSyncResponse, error) 
 		return AppSyncResponse{}, err
 	}
 	resp, err := client.httpRequest(string(b))
+	if err != nil {
+		return AppSyncResponse{}, err
+	}
 	var appSyncResp AppSyncResponse
-	err = json.Unmarshal([]byte(resp), appSyncResp)
+	err = json.Unmarshal([]byte(resp), &appSyncResp)
 	return appSyncResp, err
 
 }
