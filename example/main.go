@@ -3,7 +3,7 @@ package main
 import (
 	appsync "github.com/bernays/appsyncgo/client"
 	"github.com/sirupsen/logrus"
-	//"time"
+	"time"
 )
 
 func HandleData(data string) error {
@@ -31,7 +31,7 @@ func main() {
 	if err != nil {
 		logger.Error(err)
 	}
- 	reqc := appsync.AppSyncRequest{Query: `query { singlePost(id: "22") {id title } }`}
+	reqc := appsync.AppSyncRequest{Query: `query { singlePost(id: "22") {id title } }`}
 	client.Query(reqc)
 	data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
 	_, err = client.Subscribe(data, HandleData)
