@@ -265,7 +265,11 @@ func (client *AppSyncClient) CloseConnection(restart, timeout bool) error {
 }
 
 func (client *AppSyncClient) internalSubscribe(subscription subscription) error {
-	iamHeaders, _, err := iamAuth(client.URL, client.Auth.Profile, subscription.Query)
+	req, err := http.NewRequest("POST", client.URL, nil)
+	if err != nil {
+		return err
+	}
+	iamHeaders, _, err := iamHeaders(req, client.Auth.Profile, subscription.Query)
 	if err != nil {
 		return err
 	}
