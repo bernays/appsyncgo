@@ -22,13 +22,23 @@ func main() {
 	if err != nil {
 		logger.Error(err)
 	}
-	defer client.CloseConnection(false, false)
-	client.StartConnection()
-	reqc := appsync.AppSyncRequest{Query: `query { singlePost(id: "22") {id title } }`}
+	defer func() {
+		err = client.CloseConnection(false, false)
+		logger.Error(err)
+
+	}()
+	err = client.StartConnection()
+	if err != nil {
+		logger.Error(err)
+	}
+ 	reqc := appsync.AppSyncRequest{Query: `query { singlePost(id: "22") {id title } }`}
 	client.Query(reqc)
-	// data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
-	// client.Subscribe(data, HandleData)
-	// for {
-	// 	time.Sleep(2 * time.Second)
-	// }
+	data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
+	_, err = client.Subscribe(data, HandleData)
+	if err != nil {
+		logger.Error(err)
+	}
+	for {
+		time.Sleep(2 * time.Second)
+	}
 }

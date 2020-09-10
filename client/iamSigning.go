@@ -80,10 +80,11 @@ func makeSha256Reader(reader io.ReadSeeker) (hashBytes []byte, err error) {
 	defer func() {
 		// ensure error is return if unable to seek back to start if payload
 		_, err = reader.Seek(start, io.SeekStart)
+
 	}()
 
-	io.Copy(hash, reader)
-	return hash.Sum(nil), nil
+	_, err = io.Copy(hash, reader)
+	return hash.Sum(nil), err
 }
 
 func (client *AppSyncClient) httpRequest(payload string) (string, error) {

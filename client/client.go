@@ -122,7 +122,8 @@ func (client *AppSyncClient) StartConnection() error {
 		RawQuery: fmt.Sprintf("%s%s%s", "header=", encoded, "&payload=e30="),
 	}
 	if err != nil {
-
+		logger.Error(err)
+		return err
 	}
 	// client.Interrupt = make(chan os.Signal, 1)
 	// signal.Notify(client.Interrupt, os.Interrupt)
@@ -182,7 +183,10 @@ func (client *AppSyncClient) processData() {
 		for _, s := range client.Subscriptions {
 			messageString := string(wsMessage.Payload.Data)
 			if s.ID == wsMessage.ID && len(messageString) > 0 {
-				s.Handler(messageString)
+				err := s.Handler(messageString)
+				if err != nil {
+					logger.Error(err)
+				}
 			}
 		}
 
@@ -192,18 +196,27 @@ func (client *AppSyncClient) processData() {
 func (client *AppSyncClient) readData() {
 	for {
 		logger.Debug("Waiting for message")
-		client.Connection.SetReadDeadline(time.Now().Add(10 * time.Second))
+		err := client.Connection.SetReadDeadline(time.Now().Add(10 * time.Second))
+		if err != nil {
+			logger.Error(err)
+		}
 		_, message, err := client.Connection.ReadMessage()
 		if os.IsTimeout(err) {
 			logger.Error("Timeout!:")
 			logger.Error(err)
-			client.CloseConnection(true, true)
+			err = client.CloseConnection(true, true)
+			if err != nil {
+				logger.Error("unable to close connection:", err)
+			}
 			break
 		} else if err != nil {
 			logger.Error("read:", err)
 			// TODO: understand if error is because connection was closed
 			// Close connection, and retry
-			client.CloseConnection(true, false)
+			err = client.CloseConnection(true, false)
+			if err != nil {
+				logger.Error("unable to close connection:", err)
+			}
 			break
 		}
 		logger.Printf("recv: %s", message)
@@ -240,9 +253,10 @@ func (client *AppSyncClient) CloseConnection(restart, timeout bool) error {
 			}
 		}
 		if restart {
-			client.StartConnection()
-		} else {
-
+			err := client.StartConnection()
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		logger.Printf("No Connection to close")
@@ -251,11 +265,10 @@ func (client *AppSyncClient) CloseConnection(restart, timeout bool) error {
 }
 
 func (client *AppSyncClient) internalSubscribe(subscription subscription) error {
-	req, err := http.NewRequest("POST", client.URL, nil)
+	iamHeaders, _, err := iamAuth(client.URL, client.Auth.Profile, subscription.Query)
 	if err != nil {
 		return err
 	}
-	iamHeaders, _, err := iamHeaders(req, client.Auth.Profile, subscription.Query)
 	subRequest := &SubscriptionRequest{
 		ID: subscription.ID,
 		Payload: subscriptionRequestPayload{
