@@ -84,7 +84,7 @@ func CreateClient(urlAppSync, profile string) (*AppSyncClient, error) {
 	}, nil
 }
 
-func (client *AppSyncClient) generateAuthFields() (string, error) {
+func (client *AppSyncClient) subscriptionAuthFields() (string, error) {
 	apiURL := client.URL
 	if client.Auth.AuthType == "API_KEY" {
 		host := strings.ReplaceAll(strings.ReplaceAll(apiURL, "https://", ""), "/graphql", "")
@@ -112,7 +112,7 @@ func (client *AppSyncClient) generateAuthFields() (string, error) {
 // StartConnection- Starts long running websocket connection to AppSync,
 func (client *AppSyncClient) StartConnection() error {
 
-	encoded, err := client.generateAuthFields()
+	encoded, err := client.subscriptionAuthFields()
 	h := http.Header{}
 	h.Add("Sec-WebSocket-Protocol", "graphql-ws")
 	u := url.URL{
@@ -226,18 +226,26 @@ func (client *AppSyncClient) readData() {
 
 // Query allows user to synchronously interact with API
 func (client *AppSyncClient) Query(req AppSyncRequest) (AppSyncResponse, error) {
+	var appSyncRespInternal appSyncResponseInternal
+	var appSyncResp AppSyncResponse
 	b, err := json.Marshal(req)
 	if err != nil {
-		return AppSyncResponse{}, err
+		return appSyncResp, err
 	}
 	resp, err := client.httpRequest(string(b))
 	if err != nil {
-		return AppSyncResponse{}, err
+		return appSyncResp, err
 	}
-	var appSyncResp AppSyncResponse
-	err = json.Unmarshal([]byte(resp), &appSyncResp)
-	return appSyncResp, err
+	//logger.Print(resp)
 
+	err = json.Unmarshal([]byte(resp), &appSyncRespInternal)
+	if err != nil {
+		return appSyncResp, err
+	}
+	appSyncResp.Data = string(appSyncRespInternal.Data)
+	appSyncResp.Errors = string(appSyncRespInternal.Errors)
+
+	return appSyncResp, err
 }
 
 // CloseConnection closes connections and unsubscribes from subscriptions (if necessary)

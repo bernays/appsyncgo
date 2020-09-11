@@ -39,12 +39,18 @@ type appSyncMessage struct {
 }
 
 // AppSyncResponse response from appsync, Data can be null if their is an error or no data was returned
+// Both fields are strings as the data is dynamic
 type AppSyncResponse struct {
 	Data   string `json:"data"`
 	Errors string `json:"errors"`
 }
 
-// AppSyncRequest asdfadsf
+type appSyncResponseInternal struct {
+	Data   json.RawMessage `json:"data"`
+	Errors json.RawMessage `json:"errors"`
+}
+
+// AppSyncRequest Struct that contains all of the information for a Synchronous request
 type AppSyncRequest struct {
 	Query     string `json:"query"`
 	Variables string `json:"variables"`

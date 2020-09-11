@@ -24,7 +24,7 @@ func iamAuth(req *http.Request, profile, payload string) (*http.Request, error) 
 		external.WithDefaultRegion("us-east-2"),
 	)
 	if err != nil {
-		log.Printf("%+v", err)
+		logger.Printf("%+v", err)
 		panic("unable to load SDK config, " + err.Error())
 
 	}
@@ -38,8 +38,8 @@ func iamAuth(req *http.Request, profile, payload string) (*http.Request, error) 
 	}
 	sha1Hash := hex.EncodeToString(hashBytes)
 	if err != nil {
-		log.Printf("Error constructing request object")
-		log.Printf("Error: %v", err)
+		logger.Printf("Error constructing request object")
+		logger.Printf("Error: %v", err)
 		return req, err
 	}
 	var signingTime time.Time
@@ -97,7 +97,7 @@ func (client *AppSyncClient) httpRequest(payload string) (string, error) {
 	req.Header.Set("Content-Type", "application/json")
 	signedReq, err := iamAuth(req, client.Auth.Profile, payload)
 	if err != nil {
-		log.Printf("failed to sign request: (%v)\n", err)
+		logger.Printf("failed to sign request: (%v)\n", err)
 		return "", err
 	}
 	resp, err := httpclient.Do(signedReq)
@@ -107,10 +107,9 @@ func (client *AppSyncClient) httpRequest(payload string) (string, error) {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err == nil {
 			body = string(bodyBytes)
-			log.Print(body)
 		}
 	} else {
-		log.Printf("Error in getting response: %+v\n", err)
+		logger.Printf("Error in getting response: %+v\n", err)
 	}
 	return body, nil
 
