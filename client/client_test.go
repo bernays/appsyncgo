@@ -58,7 +58,7 @@ func TestCreateClientAuthApiKey(t *testing.T) {
 	// if AWS_IAM and profile is nil then  Key, Secret are required and Token is optional
 }
 
-func TestGenerateAuthFieldsAuthType(t *testing.T) {
+func TestSubscriptionAuthFieldsAuthType(t *testing.T) {
 	// Any value other than AWS_IAM and API_KEY returns an error
 	// Test Compute Headers for API_KEY
 	// Test Compute Headers for Profile
@@ -95,7 +95,7 @@ func TestGenerateAuthFieldsAuthType(t *testing.T) {
 			AuthType: "AWS_IAM",
 		},
 	}
-	encoded, err := ASC.generateAuthFields()
+	encoded, err := ASC.subscriptionAuthFields()
 	if err != nil {
 		logger.Error("decode error:", err)
 		return
