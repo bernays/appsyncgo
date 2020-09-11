@@ -84,7 +84,7 @@ func CreateClient(urlAppSync, profile string) (*AppSyncClient, error) {
 	}, nil
 }
 
-func (client *AppSyncClient) generateAuthFields() (string, error) {
+func (client *AppSyncClient) subscriptionAuthFields() (string, error) {
 	apiURL := client.URL
 	if client.Auth.AuthType == "API_KEY" {
 		host := strings.ReplaceAll(strings.ReplaceAll(apiURL, "https://", ""), "/graphql", "")
@@ -92,7 +92,11 @@ func (client *AppSyncClient) generateAuthFields() (string, error) {
 		return base64.StdEncoding.EncodeToString(encodedBytes), nil
 	} else if client.Auth.AuthType == "AWS_IAM" {
 		canonicalURI := strings.ReplaceAll(apiURL, "https://", "wss://") + "/connect"
-		iamHeaders, _, err := iamAuth(canonicalURI, client.Auth.Profile, "{}")
+		req, err := http.NewRequest("POST", canonicalURI, nil)
+		if err != nil {
+			return "", err
+		}
+		iamHeaders, _, err := iamHeaders(req, client.Auth.Profile, "{}")
 		if err != nil {
 			return "", err
 		}
@@ -105,10 +109,10 @@ func (client *AppSyncClient) generateAuthFields() (string, error) {
 	return "", errors.New("Unknown AuthType")
 }
 
-// StartConnection Starts long running websocket connection to AppSync,
+// StartConnection- Starts long running websocket connection to AppSync,
 func (client *AppSyncClient) StartConnection() error {
 
-	encoded, err := client.generateAuthFields()
+	encoded, err := client.subscriptionAuthFields()
 	h := http.Header{}
 	h.Add("Sec-WebSocket-Protocol", "graphql-ws")
 	u := url.URL{
@@ -221,8 +225,27 @@ func (client *AppSyncClient) readData() {
 }
 
 // Query allows user to synchronously interact with API
-func (client *AppSyncClient) Query(method, variables, query string) (str string, err error) {
-	return str, err
+func (client *AppSyncClient) Query(req AppSyncRequest) (AppSyncResponse, error) {
+	var appSyncRespInternal appSyncResponseInternal
+	var appSyncResp AppSyncResponse
+	b, err := json.Marshal(req)
+	if err != nil {
+		return appSyncResp, err
+	}
+	resp, err := client.httpRequest(string(b))
+	if err != nil {
+		return appSyncResp, err
+	}
+	//logger.Print(resp)
+
+	err = json.Unmarshal([]byte(resp), &appSyncRespInternal)
+	if err != nil {
+		return appSyncResp, err
+	}
+	appSyncResp.Data = string(appSyncRespInternal.Data)
+	appSyncResp.Errors = string(appSyncRespInternal.Errors)
+
+	return appSyncResp, err
 }
 
 // CloseConnection closes connections and unsubscribes from subscriptions (if necessary)
@@ -253,7 +276,11 @@ func (client *AppSyncClient) CloseConnection(restart, timeout bool) error {
 }
 
 func (client *AppSyncClient) internalSubscribe(subscription subscription) error {
-	iamHeaders, _, err := iamAuth(client.URL, client.Auth.Profile, subscription.Query)
+	req, err := http.NewRequest("POST", client.URL, nil)
+	if err != nil {
+		return err
+	}
+	iamHeaders, _, err := iamHeaders(req, client.Auth.Profile, subscription.Query)
 	if err != nil {
 		return err
 	}

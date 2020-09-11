@@ -3,7 +3,7 @@ package main
 import (
 	appsync "github.com/bernays/appsyncgo/client"
 	"github.com/sirupsen/logrus"
-	"time"
+	// "time"
 )
 
 func HandleData(data string) error {
@@ -24,19 +24,28 @@ func main() {
 	}
 	defer func() {
 		err = client.CloseConnection(false, false)
-		logger.Error(err)
-
+		if err != nil {
+			logger.Error(err)
+		}
 	}()
 	err = client.StartConnection()
 	if err != nil {
 		logger.Error(err)
 	}
-	data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
-	_, err = client.Subscribe(data, HandleData)
+	reqc := appsync.AppSyncRequest{Query: `query { singlePost(id: "22") {id title } }`}
+	response, err := client.Query(reqc)
+	logger.Debug(response.Data)
 	if err != nil {
+		logger.Print(response)
 		logger.Error(err)
 	}
-	for {
-		time.Sleep(2 * time.Second)
-	}
+
+	// data := "{\"query\":\"subscription { addedPost{ id title } }\",\"variables\":{}}"
+	// _, err = client.Subscribe(data, HandleData)
+	// if err != nil {
+	// 	logger.Error(err)
+	// }
+	// for {
+	// 	time.Sleep(2 * time.Second)
+	// }
 }
