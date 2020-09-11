@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"net/http"
